@@ -21,8 +21,8 @@ export function openCompressorDialog(files, { maxSize = 0 } = {}) {
         const form = dialog.querySelector('form')
         const qualityOutput = dialog.querySelector('[data-quality-output]')
         const previewUrls = []
-        let results = []
         let run = 0
+        let busy = false
 
         files.forEach((file, index) => {
             const url = URL.createObjectURL(file)
@@ -40,24 +40,33 @@ export function openCompressorDialog(files, { maxSize = 0 } = {}) {
             }
         }
 
-        // Re-run compression whenever settings change. A run counter discards
+        /**
+         * @param {object} options
+         * @returns {Promise<Array<[File, string]>>}
+         */
+        const compressAll = async (options) => {
+            const settled = await Promise.allSettled(
+                files.map((file) => compressImage(file, options)),
+            )
+
+            return settled.map((result, index) => outcome(result, files[index]))
+        }
+
+        // Re-run the preview whenever settings change. A run counter discards
         // results from stale runs that finish after a newer one has started.
         const update = async () => {
             const current = ++run
             const options = readOptions()
             qualityOutput.textContent = `${Math.round(options.quality * 100)}%`
 
-            const settled = await Promise.allSettled(
-                files.map((file) => compressImage(file, options)),
-            )
+            const outcomes = await compressAll(options)
 
             if (current !== run) return
 
-            results = settled.map((result, index) => {
+            outcomes.forEach(([file, message], index) => {
                 const cell = dialog.querySelector(
                     `[data-row="${index}"] [data-result]`,
                 )
-                const [file, message] = outcome(result, files[index])
 
                 // Oversized originals are let through to the dialog (see
                 // media.js), so flag anything WordPress will still reject.
@@ -65,8 +74,6 @@ export function openCompressorDialog(files, { maxSize = 0 } = {}) {
                     maxSize && file.size > maxSize
                         ? `${message}. Over the ${formatBytes(maxSize)} upload limit`
                         : message
-
-                return file
             })
         }
 
@@ -74,6 +81,7 @@ export function openCompressorDialog(files, { maxSize = 0 } = {}) {
 
         const close = (value) => {
             run++
+            debouncedUpdate.cancel()
             previewUrls.forEach((url) => URL.revokeObjectURL(url))
             dialog.close()
             dialog.remove()
@@ -88,11 +96,28 @@ export function openCompressorDialog(files, { maxSize = 0 } = {}) {
         form.addEventListener('submit', (event) => event.preventDefault())
 
         dialog.addEventListener('click', (event) => {
+            if (busy) return
+
             const action = event.target.closest('[data-action]')?.dataset.action
 
             if (action === 'compress') {
-                // Settle any pending settings change before uploading.
-                update().then(() => close(results))
+                // Compress with the current settings rather than reusing the
+                // preview, which may be stale or still running. Lock the
+                // dialog so a second click or Escape can't close it first.
+                // Read settings first: FormData skips disabled fields.
+                const options = readOptions()
+
+                busy = true
+                debouncedUpdate.cancel()
+                dialog
+                    .querySelectorAll('button, input, select')
+                    .forEach((element) => (element.disabled = true))
+                event.target.closest('[data-action]').textContent =
+                    'Compressing…'
+
+                compressAll(options).then((outcomes) =>
+                    close(outcomes.map(([file]) => file)),
+                )
             }
             if (action === 'original') close(files)
             if (action === 'cancel') close([])
@@ -101,7 +126,8 @@ export function openCompressorDialog(files, { maxSize = 0 } = {}) {
         // Escape key
         dialog.addEventListener('cancel', (event) => {
             event.preventDefault()
-            close([])
+
+            if (!busy) close([])
         })
 
         dialog.showModal()
@@ -201,8 +227,12 @@ function escapeHtml(value) {
 function debounce(fn, wait) {
     let timeout
 
-    return (...args) => {
+    const debounced = (...args) => {
         clearTimeout(timeout)
         timeout = setTimeout(() => fn(...args), wait)
     }
+
+    debounced.cancel = () => clearTimeout(timeout)
+
+    return debounced
 }
