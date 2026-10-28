@@ -1,0 +1,15 @@
+{
+    "name": "joejohnson-r52/media-compressor",
+    "type": "wordpress-plugin",
+    "description": "Compress and resize images in the browser before they are uploaded to the WordPress Media Library.",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Joe Johnson"
+        }
+    ],
+    "require": {
+        "php": ">=7.4",
+        "composer/installers": "^2.0"
+    }
+}
