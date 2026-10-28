@@ -10,6 +10,8 @@ When JPEG, PNG or WebP images are added to the uploader, a dialog opens before a
 
 and see the new size of each image as you change the settings. If compressing doesn't make an image smaller, the original is uploaded instead.
 
+The settings from the last "Compress & upload" are remembered in that browser (`localStorage`), so the dialog opens with them next time. Cancelling or choosing "Upload original" doesn't change them.
+
 ## Requirements
 
 - WordPress 6.5+ (script modules)

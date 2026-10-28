@@ -6,6 +6,7 @@ All notable changes to this plugin are documented here. The format is based on [
 
 ### Added
 
+- The dialog remembers the settings from the last "Compress & upload" in that browser. Saved settings the browser can't use, such as WebP in Safari, fall back to the defaults.
 - A summary line under the image list shows the batch's total size before and after compression, and how many images are still over the upload limit.
 
 ### Changed
