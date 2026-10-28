@@ -5,6 +5,9 @@ import {
     formatBytes,
 } from 'media-compressor/compressor'
 
+/** Counter for unique heading ids, as more than one dialog can be open. */
+let dialogCount = 0
+
 /**
  * Open the compression dialog for a batch of images.
  *
@@ -18,13 +21,16 @@ import {
  */
 export function openCompressorDialog(files, { maxSize = 0 } = {}) {
     return new Promise((resolve) => {
+        const titleId = `media-compressor-title-${++dialogCount}`
         const dialog = document.createElement('dialog')
         dialog.className = 'media-compressor'
-        dialog.innerHTML = template(files)
+        dialog.setAttribute('aria-labelledby', titleId)
+        dialog.innerHTML = template(files, titleId)
         document.body.append(dialog)
 
         const form = dialog.querySelector('form')
         const qualityOutput = dialog.querySelector('[data-quality-output]')
+        const summary = dialog.querySelector('[data-summary]')
         const previewUrls = []
         let run = 0
         let busy = false
@@ -80,6 +86,14 @@ export function openCompressorDialog(files, { maxSize = 0 } = {}) {
                         ? `${message}. Over the ${formatBytes(maxSize)} upload limit`
                         : message
             })
+
+            // Rows aren't a live region (announcing every row on each settings
+            // change is too noisy), so the summary carries the announcement.
+            summary.textContent = summarise(
+                files,
+                outcomes.map(([file]) => file),
+                maxSize,
+            )
         }
 
         const debouncedUpdate = debounce(update, 200)
@@ -114,11 +128,18 @@ export function openCompressorDialog(files, { maxSize = 0 } = {}) {
 
                 busy = true
                 debouncedUpdate.cancel()
+                form.querySelectorAll('input, select').forEach(
+                    (element) => (element.disabled = true),
+                )
+                // aria-disabled rather than disabled: disabling the focused
+                // button would drop keyboard focus out of the dialog. Clicks
+                // are already ignored while busy.
                 dialog
-                    .querySelectorAll('button, input, select')
-                    .forEach((element) => (element.disabled = true))
+                    .querySelectorAll('button')
+                    .forEach((button) => button.setAttribute('aria-disabled', 'true'))
                 event.target.closest('[data-action]').textContent =
                     'Compressing…'
+                summary.textContent = 'Compressing images for upload…'
 
                 compressAll(options).then((outcomes) =>
                     close(outcomes.map(([file]) => file)),
@@ -165,15 +186,42 @@ function outcome(result, original) {
 }
 
 /**
- * @param {File[]} files
+ * Describe the batch's total saving, and how many files are still too large.
+ *
+ * @param {File[]} originals
+ * @param {File[]} uploads
+ * @param {number} maxSize
  * @returns {string}
  */
-function template(files) {
+function summarise(originals, uploads, maxSize) {
+    const total = (files) => files.reduce((sum, file) => sum + file.size, 0)
+    const before = total(originals)
+    const after = total(uploads)
+    const saving = Math.round((1 - after / before) * 100)
+    const over = maxSize
+        ? uploads.filter((file) => file.size > maxSize).length
+        : 0
+
+    let text = `Total ${formatBytes(before)} → ${formatBytes(after)} (−${saving}%)`
+
+    if (over) {
+        text += `. ${over} ${over === 1 ? 'image is' : 'images are'} over the ${formatBytes(maxSize)} upload limit`
+    }
+
+    return text
+}
+
+/**
+ * @param {File[]} files
+ * @param {string} titleId
+ * @returns {string}
+ */
+function template(files, titleId) {
     const rows = files
         .map(
             (file, index) => `
                 <li class="media-compressor__row" data-row="${index}">
-                    <img alt="" />
+                    <img alt="" decoding="async" loading="lazy" />
                     <span class="media-compressor__name">${escapeHtml(file.name)}</span>
                     <span>${formatBytes(file.size)}</span>
                     <span data-result>Compressing…</span>
@@ -183,7 +231,7 @@ function template(files) {
         .join('')
 
     return `
-        <h2>Compress images before upload</h2>
+        <h2 id="${titleId}">Compress images before upload</h2>
         <form method="dialog" class="media-compressor__settings">
             <label>
                 Quality <output data-quality-output></output>
@@ -205,6 +253,7 @@ function template(files) {
             </label>
         </form>
         <ul class="media-compressor__list">${rows}</ul>
+        <p class="media-compressor__summary" role="status" data-summary></p>
         <div class="media-compressor__actions">
             <button type="button" class="button" data-action="cancel">Cancel</button>
             <button type="button" class="button" data-action="original">Upload original</button>

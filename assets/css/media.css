@@ -61,6 +61,11 @@
     white-space: nowrap;
 }
 
+.media-compressor__summary {
+    margin: 0 0 16px;
+    font-weight: 600;
+}
+
 .media-compressor__actions {
     display: flex;
     justify-content: flex-end;
