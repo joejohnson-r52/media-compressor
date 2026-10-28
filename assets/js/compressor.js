@@ -25,6 +25,20 @@ const EXTENSIONS = {
 export const isCompressible = (file) => COMPRESSIBLE_TYPES.includes(file.type)
 
 /**
+ * Whether the browser can encode a mime type from a canvas. Unsupported types
+ * silently fall back to PNG (e.g. WebP in Safari).
+ *
+ * @param {string} type
+ * @returns {boolean}
+ */
+export function canEncode(type) {
+    const canvas = document.createElement('canvas')
+    canvas.width = canvas.height = 1
+
+    return canvas.toDataURL(type).startsWith(`data:${type}`)
+}
+
+/**
  * Compress an image file in the browser.
  *
  * Note: re-encoding through canvas strips EXIF/ICC metadata. Orientation is
@@ -66,6 +80,12 @@ export async function compressImage(file, options = {}) {
     bitmap.close()
 
     const blob = await canvas.convertToBlob({ type, quality })
+
+    // Unsupported output types come back as PNG. Fail rather than upload a
+    // PNG labelled as something else, so the original is used instead.
+    if (blob.type !== type) {
+        throw new Error(`This browser cannot encode ${type}`)
+    }
 
     return new File([blob], renameForType(file.name, type), {
         type,

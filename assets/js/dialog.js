@@ -1,4 +1,9 @@
-import { compressImage, DEFAULT_OPTIONS, formatBytes } from 'media-compressor/compressor'
+import {
+    canEncode,
+    compressImage,
+    DEFAULT_OPTIONS,
+    formatBytes,
+} from 'media-compressor/compressor'
 
 /**
  * Open the compression dialog for a batch of images.
@@ -194,7 +199,7 @@ function template(files) {
                 Format
                 <select name="format">
                     <option value="original">Keep original</option>
-                    <option value="image/webp">WebP</option>
+                    ${canEncode('image/webp') ? '<option value="image/webp">WebP</option>' : ''}
                     <option value="image/jpeg">JPEG</option>
                 </select>
             </label>
