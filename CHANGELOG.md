@@ -4,6 +4,8 @@ All notable changes to this plugin are documented here. The format is based on [
 
 ## [Unreleased]
 
+## [1.0.3] - 2026-10-28
+
 ### Added
 
 - The dialog remembers the settings from the last "Compress & upload" in that browser. Saved settings the browser can't use, such as WebP in Safari, fall back to the defaults.
@@ -48,7 +50,8 @@ All notable changes to this plugin are documented here. The format is based on [
 - The original is uploaded whenever compressing wouldn't make it smaller.
 - Images over the upload limit can be compressed until they fit, instead of being rejected before the dialog opens.
 
-[Unreleased]: https://github.com/joejohnson-r52/media-compressor/compare/v1.0.2...HEAD
+[Unreleased]: https://github.com/joejohnson-r52/media-compressor/compare/v1.0.3...HEAD
+[1.0.3]: https://github.com/joejohnson-r52/media-compressor/compare/v1.0.2...v1.0.3
 [1.0.2]: https://github.com/joejohnson-r52/media-compressor/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/joejohnson-r52/media-compressor/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/joejohnson-r52/media-compressor/releases/tag/v1.0.0
