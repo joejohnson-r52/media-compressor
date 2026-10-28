@@ -136,7 +136,9 @@ export function openCompressorDialog(files, { maxSize = 0 } = {}) {
                 // are already ignored while busy.
                 dialog
                     .querySelectorAll('button')
-                    .forEach((button) => button.setAttribute('aria-disabled', 'true'))
+                    .forEach((button) =>
+                        button.setAttribute('aria-disabled', 'true'),
+                    )
                 event.target.closest('[data-action]').textContent =
                     'Compressing…'
                 summary.textContent = 'Compressing images for upload…'

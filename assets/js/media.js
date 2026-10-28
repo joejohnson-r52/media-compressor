@@ -8,8 +8,10 @@ import { openCompressorDialog } from 'media-compressor/dialog'
  * wp.media modal. Images are pulled from the queue before WordPress starts the
  * upload, shown in the compressor dialog, then re-added as compressed files.
  *
- * Not covered: direct drag-and-drop onto blocks in the block editor, which
- * uploads via the REST API rather than plupload.
+ * Not covered:
+ * - the block editor's own Upload button and drag-and-drop onto blocks, which
+ *   upload via the REST API rather than plupload
+ * - the legacy media-new.php uploader, which uses plupload directly
  */
 
 /**
@@ -105,7 +107,9 @@ function onFilesAdded(up, files) {
         up.removeFile(file)
     })
 
-    const maxSize = window.plupload.parseSize(up.settings.filters?.max_file_size)
+    const maxSize = window.plupload.parseSize(
+        up.settings.filters?.max_file_size,
+    )
 
     openCompressorDialog(natives, { maxSize }).then((toUpload) => {
         if (!toUpload.length) return
