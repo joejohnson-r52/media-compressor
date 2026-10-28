@@ -19,6 +19,12 @@ import { openCompressorDialog } from 'media-compressor/dialog'
 const processed = new WeakSet()
 
 /**
+ * plupload instances we have bound to. The size filter is global, so other
+ * plupload users on the page (e.g. Gravity Forms) must keep the normal check.
+ */
+const extended = new WeakSet()
+
+/**
  * Replace plupload's max_file_size filter so images over the upload limit
  * reach the compressor instead of being rejected outright. The limit is still
  * applied when the compressed file is re-added, and PHP enforces it server-side.
@@ -31,7 +37,12 @@ const extendSizeFilter = () => {
     plupload.addFileFilter('max_file_size', function (maxSize, file, cb) {
         const native = file.getNative()
 
-        if (native && !processed.has(native) && isCompressible(native)) {
+        if (
+            extended.has(this) &&
+            native &&
+            !processed.has(native) &&
+            isCompressible(native)
+        ) {
             return cb(true)
         }
 
@@ -61,6 +72,8 @@ const extendUploader = () => {
 
     Uploader.prototype.init = function (...args) {
         init.apply(this, args)
+
+        extended.add(this.uploader)
 
         // Priority 100 runs before WordPress's own FilesAdded handler (priority
         // 0), which builds attachment models and calls up.start().
