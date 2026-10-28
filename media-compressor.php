@@ -16,11 +16,21 @@ if (! defined('ABSPATH')) {
     exit;
 }
 
-const VERSION = '1.0.2';
+/**
+ * Plugin version, read from the header above so it only lives in one place.
+ *
+ * @return string
+ */
+function version(): string
+{
+    static $version;
+
+    return $version ??= get_file_data(__FILE__, ['Version' => 'Version'])['Version'];
+}
 
 /**
  * Cache-busting version for an asset. Outside production the file's mtime is
- * used, so edits reach the browser without bumping VERSION (Safari otherwise
+ * used, so edits reach the browser without a version bump (Safari otherwise
  * keeps serving cached script modules).
  *
  * @param string $path Path relative to the plugin directory.
@@ -29,7 +39,7 @@ const VERSION = '1.0.2';
 function asset_version(string $path): string
 {
     if (! in_array(wp_get_environment_type(), ['local', 'development'], true)) {
-        return VERSION;
+        return version();
     }
 
     return (string) filemtime(__DIR__ . '/' . $path);
