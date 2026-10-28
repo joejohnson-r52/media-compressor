@@ -3,7 +3,7 @@
 /**
  * Plugin Name: Media Compressor
  * Description: Compress and resize images in the browser before they are uploaded to the Media Library.
- * Version: 1.0.1
+ * Version: 1.0.2
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * Author: Joe Johnson
@@ -16,7 +16,24 @@ if (! defined('ABSPATH')) {
     exit;
 }
 
-const VERSION = '1.0.1';
+const VERSION = '1.0.2';
+
+/**
+ * Cache-busting version for an asset. Outside production the file's mtime is
+ * used, so edits reach the browser without bumping VERSION (Safari otherwise
+ * keeps serving cached script modules).
+ *
+ * @param string $path Path relative to the plugin directory.
+ * @return string
+ */
+function asset_version(string $path): string
+{
+    if (! in_array(wp_get_environment_type(), ['local', 'development'], true)) {
+        return VERSION;
+    }
+
+    return (string) filemtime(__DIR__ . '/' . $path);
+}
 
 /**
  * Load the upload compressor wherever the media uploader is used.
@@ -34,27 +51,27 @@ add_action('wp_enqueue_media', function () {
         'media-compressor/compressor',
         $url . 'assets/js/compressor.js',
         [],
-        VERSION
+        asset_version('assets/js/compressor.js')
     );
 
     wp_register_script_module(
         'media-compressor/dialog',
         $url . 'assets/js/dialog.js',
         ['media-compressor/compressor'],
-        VERSION
+        asset_version('assets/js/dialog.js')
     );
 
     wp_enqueue_script_module(
         'media-compressor',
         $url . 'assets/js/media.js',
         ['media-compressor/compressor', 'media-compressor/dialog'],
-        VERSION
+        asset_version('assets/js/media.js')
     );
 
     wp_enqueue_style(
         'media-compressor',
         $url . 'assets/css/media.css',
         [],
-        VERSION
+        asset_version('assets/css/media.css')
     );
 });
