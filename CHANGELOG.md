@@ -4,6 +4,24 @@ All notable changes to this plugin are documented here. The format is based on [
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-10-29
+
+### Changed
+
+- Requires PHP 8.1.
+- Restructured the code; behaviour, the stored settings and the script module ids WordPress loads are unchanged:
+    - PHP is now a set of classes under `src/` (PSR-4, autoloaded by Composer or by the bundled `autoload.php` for manual installs): a composition root, a `Settings` value object and `Format` enum, a settings repository, the settings page, and asset loading.
+    - JavaScript is split into focused modules: configuration and messages, the image compressor, an adapter per WordPress uploader, and the dialog as a coordinator, a view and a compression session.
+
+### Added
+
+- Unit tests: PHPUnit for the settings, and Node's built-in test runner for the JavaScript. Run both with `composer test`.
+
+### Fixed
+
+- Uninstalling now deletes the settings on every site in a multisite network, not only the main site.
+- The dialog only uses numeric settings from the page data; anything else falls back to the defaults.
+
 ## [1.1.2] - 2026-10-29
 
 ### Changed
@@ -85,7 +103,8 @@ All notable changes to this plugin are documented here. The format is based on [
 - The original is uploaded whenever compressing wouldn't make it smaller.
 - Images over the upload limit can be compressed until they fit, instead of being rejected before the dialog opens.
 
-[Unreleased]: https://github.com/joejohnson-r52/media-compressor/compare/v1.1.2...HEAD
+[Unreleased]: https://github.com/joejohnson-r52/media-compressor/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/joejohnson-r52/media-compressor/compare/v1.1.2...v1.2.0
 [1.1.2]: https://github.com/joejohnson-r52/media-compressor/compare/v1.1.1...v1.1.2
 [1.1.1]: https://github.com/joejohnson-r52/media-compressor/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/joejohnson-r52/media-compressor/compare/v1.0.3...v1.1.0
