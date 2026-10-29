@@ -61,6 +61,12 @@ function asset_version(string $path): string
  * @return void
  */
 add_action('wp_enqueue_media', function () {
+    // Admin only: themes and plugins can open the media uploader on the front
+    // end too, where the dialog isn't wanted (and admin styles aren't loaded).
+    if (! is_admin()) {
+        return;
+    }
+
     $url = plugin_dir_url(__FILE__);
 
     wp_register_script_module(
