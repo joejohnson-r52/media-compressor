@@ -1,5 +1,6 @@
 import {
     canEncode,
+    CompressError,
     compressImage,
     DEFAULT_OPTIONS,
     formatBytes,
@@ -182,7 +183,12 @@ export function openCompressorDialog(files, { maxSize = 0 } = {}) {
  */
 function outcome(result, original) {
     if (result.status === 'rejected') {
-        return [original, 'Could not compress, original will be used']
+        const reason =
+            result.reason instanceof CompressError
+                ? result.reason.message
+                : 'Could not compress'
+
+        return [original, `${reason}, original will be used`]
     }
 
     const compressed = result.value

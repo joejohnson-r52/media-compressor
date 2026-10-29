@@ -29,6 +29,15 @@ const EXTENSIONS = {
     'image/webp': 'webp',
 }
 
+const NAMES = {
+    'image/jpeg': 'JPEG',
+    'image/png': 'PNG',
+    'image/webp': 'WebP',
+}
+
+/** A compression failure whose message is fit to show in the dialog. */
+export class CompressError extends Error {}
+
 /**
  * @param {File} file
  * @returns {boolean}
@@ -61,14 +70,24 @@ export function canEncode(type) {
  * @param {number} options.maxDimension - longest edge in px, 0 to disable
  * @param {'original'|'image/jpeg'|'image/webp'} options.format
  * @returns {Promise<File>}
+ * @throws {CompressError} with a reason to show in the dialog
  */
 export async function compressImage(file, options = {}) {
     const { quality, maxDimension, format } = { ...DEFAULT_OPTIONS, ...options }
     const type = format === 'original' ? file.type : format
+    // Canvases over the browser's size limit (about 16.7 megapixels in
+    // Safari) fail to create, draw or encode, depending on the browser.
+    const tooLarge = new CompressError('Too large for this browser to process')
 
-    const bitmap = await createImageBitmap(file, {
-        imageOrientation: 'from-image',
-    })
+    let bitmap
+
+    try {
+        bitmap = await createImageBitmap(file, {
+            imageOrientation: 'from-image',
+        })
+    } catch {
+        throw new CompressError('Could not read this image')
+    }
 
     const scale =
         maxDimension > 0
@@ -77,25 +96,44 @@ export async function compressImage(file, options = {}) {
     const width = Math.round(bitmap.width * scale)
     const height = Math.round(bitmap.height * scale)
 
-    const canvas = new OffscreenCanvas(width, height)
-    const context = canvas.getContext('2d')
+    let canvas
 
-    // JPEG has no alpha channel, so flatten transparency onto white
-    // rather than letting it render black.
-    if (type === 'image/jpeg') {
-        context.fillStyle = '#fff'
-        context.fillRect(0, 0, width, height)
+    // Release the decoded image as soon as it's drawn, or if drawing fails;
+    // it holds the full-size pixels in memory until closed.
+    try {
+        canvas = new OffscreenCanvas(width, height)
+        const context = canvas.getContext('2d')
+
+        if (!context) throw tooLarge
+
+        // JPEG has no alpha channel, so flatten transparency onto white
+        // rather than letting it render black.
+        if (type === 'image/jpeg') {
+            context.fillStyle = '#fff'
+            context.fillRect(0, 0, width, height)
+        }
+
+        context.drawImage(bitmap, 0, 0, width, height)
+    } catch {
+        throw tooLarge
+    } finally {
+        bitmap.close()
     }
 
-    context.drawImage(bitmap, 0, 0, width, height)
-    bitmap.close()
+    let blob
 
-    const blob = await canvas.convertToBlob({ type, quality })
+    try {
+        blob = await canvas.convertToBlob({ type, quality })
+    } catch {
+        throw tooLarge
+    }
 
     // Unsupported output types come back as PNG. Fail rather than upload a
     // PNG labelled as something else, so the original is used instead.
     if (blob.type !== type) {
-        throw new Error(`This browser cannot encode ${type}`)
+        throw new CompressError(
+            `This browser can't produce ${NAMES[type] ?? type} images`,
+        )
     }
 
     return new File([blob], renameForType(file.name, type), {
