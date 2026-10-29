@@ -4,6 +4,13 @@ All notable changes to this plugin are documented here. The format is based on [
 
 ## [Unreleased]
 
+## [1.1.2] - 2026-10-29
+
+### Changed
+
+- The compressor only loads in wp-admin. Front-end media uploaders, opened by themes or other plugins, are left alone.
+- The upload size limit is handled per uploader instead of by replacing plupload's global `max_file_size` filter, so the plugin no longer conflicts with other plugins that use or replace that filter. Files over the limit are still rejected with WordPress's usual error.
+
 ## [1.1.1] - 2026-10-29
 
 ### Security
@@ -78,7 +85,8 @@ All notable changes to this plugin are documented here. The format is based on [
 - The original is uploaded whenever compressing wouldn't make it smaller.
 - Images over the upload limit can be compressed until they fit, instead of being rejected before the dialog opens.
 
-[Unreleased]: https://github.com/joejohnson-r52/media-compressor/compare/v1.1.1...HEAD
+[Unreleased]: https://github.com/joejohnson-r52/media-compressor/compare/v1.1.2...HEAD
+[1.1.2]: https://github.com/joejohnson-r52/media-compressor/compare/v1.1.1...v1.1.2
 [1.1.1]: https://github.com/joejohnson-r52/media-compressor/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/joejohnson-r52/media-compressor/compare/v1.0.3...v1.1.0
 [1.0.3]: https://github.com/joejohnson-r52/media-compressor/compare/v1.0.2...v1.0.3
