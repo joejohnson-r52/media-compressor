@@ -24,13 +24,13 @@ There is no build step: the plugin ships plain ES modules and CSS.
 
 ### Composer (Bedrock)
 
-The repository is private, so add it as a VCS repository. Composer reads it over SSH.
+The plugin isn't on Packagist, so add this repository as a VCS repository:
 
 ```json
 "repositories": [
     {
         "type": "vcs",
-        "url": "git@github.com:joejohnson-r52/media-compressor.git"
+        "url": "https://github.com/joejohnson-r52/media-compressor.git"
     }
 ],
 "require": {
