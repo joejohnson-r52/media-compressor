@@ -231,9 +231,14 @@ add_action('admin_menu', function () {
 });
 
 /**
- * Add a Settings link to the plugin's row on the Plugins screen.
+ * Add a Settings link to the plugin's row on the Plugins screen, for users who
+ * can open the page (menu_page_url() returns '' for anyone else).
  */
 add_filter('plugin_action_links_' . plugin_basename(PLUGIN_FILE), function (array $links): array {
+    if (! current_user_can('manage_options')) {
+        return $links;
+    }
+
     array_unshift($links, sprintf(
         '<a href="%s">%s</a>',
         menu_page_url('media-compressor', false),
