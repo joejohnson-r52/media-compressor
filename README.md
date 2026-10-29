@@ -15,6 +15,7 @@ The dialog opens with the site's settings (see [Settings](#settings)) every time
 ## Requirements
 
 - WordPress 6.7+ (script modules and script module data)
+- PHP 8.1+
 - A browser with `OffscreenCanvas` and `createImageBitmap` support
 
 There is no build step: the plugin ships plain ES modules and CSS.
@@ -81,3 +82,40 @@ To do this, the plugin takes over the size check only on the WordPress media upl
 - Re-encoding through canvas strips EXIF and ICC metadata. Orientation is applied to the pixels first, so images still display the right way up.
 - GIFs (animation would be lost) and SVGs are passed through untouched.
 - PNG output ignores the quality setting; PNG files only get smaller by resizing or converting to another format.
+
+## Architecture
+
+### PHP (`src/`, PSR-4 `MediaCompressor\`)
+
+| Class                         | Responsibility                                                                                              |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `Plugin`                      | Composition root: builds the components, injects their dependencies, and registers them.                    |
+| `Hookable`                    | Interface for components that attach to WordPress hooks. Constructing one has no side effects.              |
+| `Settings\Settings`           | Immutable value object. `fromInput()` sanitizes untrusted input; `toScriptData()` converts for the browser. |
+| `Settings\Format`             | Enum of output formats.                                                                                     |
+| `Settings\SettingsRepository` | Owns the `media_compressor` option: registration, cached reads, deletion on every site.                     |
+| `Admin\SettingsPage`          | Settings → Media Compressor, its fields, and the Plugins-screen link.                                       |
+| `Assets`                      | Registers the script modules and stylesheet in wp-admin and passes the settings to them.                    |
+
+### JavaScript (`assets/js/`, plain ES modules, no build step)
+
+| Module                          | Responsibility                                                                                                        |
+| ------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `media.js`                      | Entry point. Decorates `wp.Uploader` so each WordPress uploader gets an `UploaderAdapter`.                            |
+| `uploader-adapter.js`           | `UploaderAdapter`: adapts one plupload instance; holds images for review, rejects oversized files, re-queues results. |
+| `config.js`                     | The site's settings, the formats this browser can produce, and every user-facing message.                             |
+| `image-compressor.js`           | `ImageCompressor`: decode → resize → draw → encode. Throws `CompressError` with a reason.                             |
+| `dialog/compressor-dialog.js`   | `CompressorDialog`: coordinates the view and session, and the dialog's lifecycle.                                     |
+| `dialog/dialog-view.js`         | `DialogView`: the dialog's DOM only.                                                                                  |
+| `dialog/compression-session.js` | `CompressionSession` and the `Outcome` value object: compression runs and their results.                              |
+
+Each module is registered as a WordPress script module under the id `media-compressor/<name>` (see `src/Assets.php`), and modules import each other by those ids.
+
+## Development
+
+```sh
+composer install   # PHPUnit
+composer test      # PHPUnit, then the JS tests with Node's built-in runner (node --test)
+```
+
+The JS tests need Node 22+ and no npm packages. Format with Prettier using the bundled `.prettierrc.json`.
