@@ -115,7 +115,8 @@ Each module is registered as a WordPress script module under the id `media-compr
 
 ```sh
 composer install   # PHPUnit
-composer test      # PHPUnit, then the JS tests with Node's built-in runner (node --test)
+composer test      # PHPUnit, then the JS tests
+node --test        # the JS tests only (or: npm test)
 ```
 
-The JS tests need Node 22+ and no npm packages. Format with Prettier using the bundled `.prettierrc.json`.
+The JS tests need Node 22+ and no npm packages: `package.json` only maps the module ids to files (its `exports`) so Node resolves them as WordPress's import map does. A test checks it stays in step with `src/Assets.php`. Format with Prettier using the bundled `.prettierrc.json`.

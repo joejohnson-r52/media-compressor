@@ -1,0 +1,17 @@
+{
+    "name": "media-compressor",
+    "private": true,
+    "description": "Development only: lets Node resolve the plugin's script module ids for tests. Nothing here is installed or built.",
+    "type": "module",
+    "exports": {
+        "./config": "./assets/js/config.js",
+        "./image-compressor": "./assets/js/image-compressor.js",
+        "./uploader-adapter": "./assets/js/uploader-adapter.js",
+        "./compression-session": "./assets/js/dialog/compression-session.js",
+        "./dialog-view": "./assets/js/dialog/dialog-view.js",
+        "./compressor-dialog": "./assets/js/dialog/compressor-dialog.js"
+    },
+    "scripts": {
+        "test": "node --test"
+    }
+}

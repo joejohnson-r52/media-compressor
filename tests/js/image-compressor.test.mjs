@@ -1,3 +1,4 @@
+import './setup.mjs'
 import { test, beforeEach } from 'node:test'
 import assert from 'node:assert/strict'
 import {

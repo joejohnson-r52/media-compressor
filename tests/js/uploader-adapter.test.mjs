@@ -1,3 +1,4 @@
+import './setup.mjs'
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { shouldHold, UploaderAdapter } from 'media-compressor/uploader-adapter'

@@ -28,7 +28,7 @@
     "scripts": {
         "test": [
             "phpunit",
-            "node --import ./tests/js/setup.mjs --test 'tests/js/*.test.mjs'"
+            "node --test"
         ]
     },
     "config": {
