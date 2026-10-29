@@ -9,6 +9,7 @@
  * Author: Joe Johnson
  * License: MIT
  * Text Domain: media-compressor
+ * Update URI: https://github.com/joejohnson-r52/media-compressor
  */
 
 namespace MediaCompressor;
