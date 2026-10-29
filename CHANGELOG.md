@@ -4,6 +4,19 @@ All notable changes to this plugin are documented here. The format is based on [
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-10-29
+
+### Security
+
+- Added an `Update URI` header, so WordPress never checks WordPress.org for updates to this plugin. Without it, a plugin published there under the same slug would be offered as an update and could replace this one.
+
+### Fixed
+
+- The Settings link on the Plugins screen is only shown to users who can open the settings page; others previously saw a link with no destination.
+
+- The decoded image is now released when compression fails partway, as well as when it succeeds. Previously a failure, such as a photo too large for Safari's canvas, kept the full-size image in memory.
+- The dialog now says why an image couldn't be compressed: "Could not read this image", "Too large for this browser to process" (for example a large photo in Safari with no maximum dimension), or "This browser can't produce WebP images".
+
 ## [1.1.0] - 2026-10-29
 
 ### Added
@@ -66,7 +79,8 @@ All notable changes to this plugin are documented here. The format is based on [
 - The original is uploaded whenever compressing wouldn't make it smaller.
 - Images over the upload limit can be compressed until they fit, instead of being rejected before the dialog opens.
 
-[Unreleased]: https://github.com/joejohnson-r52/media-compressor/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/joejohnson-r52/media-compressor/compare/v1.1.1...HEAD
+[1.1.1]: https://github.com/joejohnson-r52/media-compressor/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/joejohnson-r52/media-compressor/compare/v1.0.3...v1.1.0
 [1.0.3]: https://github.com/joejohnson-r52/media-compressor/compare/v1.0.2...v1.0.3
 [1.0.2]: https://github.com/joejohnson-r52/media-compressor/compare/v1.0.1...v1.0.2
