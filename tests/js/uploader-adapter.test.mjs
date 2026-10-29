@@ -55,8 +55,11 @@ class FakeUploader {
 const file = (name, type, size) => ({ name, type, size })
 const settle = () => new Promise((resolve) => setTimeout(resolve))
 
-/** An uploader with WordPress's own handler, and an adapter that "compresses" to 40%. */
-function setUp() {
+/**
+ * An uploader with WordPress's own handler, and an adapter that "compresses"
+ * to 40% unless given another review.
+ */
+function setUp(review) {
     const up = new FakeUploader()
     const uploaded = []
     const reviewed = []
@@ -71,13 +74,17 @@ function setUp() {
     UploaderAdapter.attach(up, {
         plupload,
         threshold: 500,
-        review: async (natives, { maxSize }) => {
-            reviewed.push(...natives.map((n) => `${n.name} (limit ${maxSize})`))
+        review:
+            review ??
+            (async (natives, { maxSize }) => {
+                reviewed.push(
+                    ...natives.map((n) => `${n.name} (limit ${maxSize})`),
+                )
 
-            return natives.map((n) =>
-                file(`${n.name}*`, n.type, Math.round(n.size * 0.4)),
-            )
-        },
+                return natives.map((n) =>
+                    file(`${n.name}*`, n.type, Math.round(n.size * 0.4)),
+                )
+            }),
     })
 
     return { up, uploaded, reviewed }
@@ -128,4 +135,15 @@ test('stops WordPress starting an empty upload when every file is held', () => {
     up.addFile([file('photo.jpg', 'image/jpeg', 800)])
 
     assert.deepEqual(uploaded, [])
+})
+
+test('uploads the originals if the review fails', async () => {
+    const { up, uploaded } = setUp(async () => {
+        throw new Error('dialog could not open')
+    })
+
+    up.addFile([file('photo.jpg', 'image/jpeg', 800)])
+    await settle()
+
+    assert.deepEqual(uploaded, ['photo.jpg'])
 })

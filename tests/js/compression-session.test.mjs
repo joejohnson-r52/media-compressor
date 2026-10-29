@@ -69,6 +69,51 @@ test('cancel() discards a running preview', async () => {
     assert.equal(await preview, null)
 })
 
+/** Records how many compressions run at once, and which files were started. */
+const trackingCompressor = () => {
+    const tracker = { active: 0, peak: 0, started: [] }
+
+    tracker.compress = async (original) => {
+        tracker.started.push(original.name)
+        tracker.peak = Math.max(tracker.peak, ++tracker.active)
+        await new Promise((resolve) => setTimeout(resolve))
+        tracker.active--
+
+        return file(`${original.name}*`, original.size / 2)
+    }
+
+    return tracker
+}
+
+const batch = (count) =>
+    Array.from({ length: count }, (_, index) => file(`${index}.jpg`, 1000))
+
+test('compresses two images at a time, in order', async () => {
+    const compressor = trackingCompressor()
+    const files = batch(5)
+    const session = new CompressionSession(files, compressor)
+
+    const outcomes = await session.compressAll({})
+
+    assert.equal(compressor.peak, 2)
+    assert.deepEqual(
+        outcomes.map((outcome) => outcome.original),
+        files,
+    )
+    assert.ok(outcomes.every((outcome) => outcome.compressed))
+})
+
+test('a cancelled preview starts no more images', async () => {
+    const compressor = trackingCompressor()
+    const session = new CompressionSession(batch(5), compressor)
+
+    const preview = session.preview({})
+    session.cancel()
+
+    assert.equal(await preview, null)
+    assert.deepEqual(compressor.started, ['0.jpg', '1.jpg'])
+})
+
 test('Outcome is immutable', () => {
     const outcome = new Outcome(file('a.jpg', 10))
 
