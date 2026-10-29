@@ -1,0 +1,28 @@
+name: Tests
+
+on:
+    push:
+        branches: [main]
+    pull_request:
+
+permissions:
+    contents: read
+
+jobs:
+    test:
+        runs-on: ubuntu-latest
+        strategy:
+            matrix:
+                # The minimum the plugin supports, and the latest.
+                php: ['8.1', '8.4']
+        steps:
+            - uses: actions/checkout@v7
+            - uses: shivammathur/setup-php@v2
+              with:
+                  php-version: ${{ matrix.php }}
+                  coverage: none
+            - uses: actions/setup-node@v7
+              with:
+                  node-version: 22
+            - run: composer install --no-interaction --no-progress
+            - run: composer test
