@@ -8,6 +8,10 @@ import { openCompressorDialog } from 'media-compressor/dialog'
  * wp.media modal. Images are pulled from the queue before WordPress starts the
  * upload, shown in the compressor dialog, then re-added as compressed files.
  *
+ * Only WordPress's own uploaders are touched: nothing global in plupload is
+ * replaced, so other plupload users on the page (e.g. Gravity Forms) and other
+ * plugins' filters keep working as they were.
+ *
  * Not covered:
  * - the block editor's own Upload button and drag-and-drop onto blocks, which
  *   upload via the REST API rather than plupload
@@ -21,10 +25,10 @@ import { openCompressorDialog } from 'media-compressor/dialog'
 const processed = new WeakSet()
 
 /**
- * plupload instances we have bound to. The size filter is global, so other
- * plupload users on the page (e.g. Gravity Forms) must keep the normal check.
+ * Upload size limit in bytes for each plupload instance we've bound to (see
+ * extendUploader). 0 means no limit.
  */
-const extended = new WeakSet()
+const limits = new WeakMap()
 
 /**
  * Images smaller than this many bytes skip the dialog; 0 holds every image.
@@ -47,38 +51,6 @@ const shouldHold = (native, maxSize) =>
     isCompressible(native) &&
     (native.size >= threshold || (maxSize > 0 && native.size > maxSize))
 
-/**
- * Replace plupload's max_file_size filter so images over the upload limit
- * reach the compressor instead of being rejected outright. The limit is still
- * applied when the compressed file is re-added, and PHP enforces it server-side.
- */
-const extendSizeFilter = () => {
-    const plupload = window.plupload
-
-    if (!plupload) return
-
-    plupload.addFileFilter('max_file_size', function (maxSize, file, cb) {
-        const limit = plupload.parseSize(maxSize)
-
-        if (extended.has(this) && shouldHold(file.getNative(), limit)) {
-            return cb(true)
-        }
-
-        // Mirrors plupload's built-in filter.
-        if (file.size !== undefined && limit && file.size > limit) {
-            this.trigger('Error', {
-                code: plupload.FILE_SIZE_ERROR,
-                message: plupload.translate('File size error.'),
-                file,
-            })
-
-            return cb(false)
-        }
-
-        cb(true)
-    })
-}
-
 const extendUploader = () => {
     const Uploader = window.wp?.Uploader
 
@@ -89,12 +61,38 @@ const extendUploader = () => {
     Uploader.prototype.init = function (...args) {
         init.apply(this, args)
 
-        extended.add(this.uploader)
+        const up = this.uploader
+
+        // Take over this uploader's size check, so images over the limit can
+        // reach the dialog and be compressed to fit. plupload's per-instance
+        // option is used rather than replacing its global max_file_size
+        // filter, which other plugins may rely on or replace themselves.
+        // WordPress passes the limit as filters.max_file_size; setOption()
+        // updates that same value.
+        limits.set(
+            up,
+            window.plupload.parseSize(up.getOption('filters')?.max_file_size) ||
+                0,
+        )
+        up.setOption('max_file_size', 0)
 
         // Priority 100 runs before WordPress's own FilesAdded handler (priority
         // 0), which builds attachment models and calls up.start().
-        this.uploader.bind('FilesAdded', onFilesAdded, null, 100)
+        up.bind('FilesAdded', onFilesAdded, null, 100)
     }
+}
+
+/**
+ * Remove a file from both the uploader's queue and the array the remaining
+ * FilesAdded handlers receive.
+ *
+ * @param {plupload.Uploader} up
+ * @param {plupload.File[]} files
+ * @param {plupload.File} file
+ */
+function dequeue(up, files, file) {
+    files.splice(files.indexOf(file), 1)
+    up.removeFile(file)
 }
 
 /**
@@ -102,34 +100,43 @@ const extendUploader = () => {
  * @param {plupload.File[]} files
  */
 function onFilesAdded(up, files) {
-    const maxSize = window.plupload.parseSize(
-        up.settings.filters?.max_file_size,
-    )
+    const maxSize = limits.get(up) ?? 0
     const held = files.filter((file) => shouldHold(file.getNative(), maxSize))
 
-    if (!held.length) return
+    // The uploader's own size check is off (see extendUploader), so reject
+    // everything else over the limit here, with plupload's usual error so
+    // WordPress shows its normal "exceeds the maximum upload size" message.
+    files
+        .filter(
+            (file) => !held.includes(file) && maxSize && file.size > maxSize,
+        )
+        .forEach((file) => {
+            up.trigger('Error', {
+                code: window.plupload.FILE_SIZE_ERROR,
+                message: window.plupload.translate('File size error.'),
+                file,
+            })
+            dequeue(up, files, file)
+        })
 
-    // Grab the native files first: removeFile() destroys the plupload File's
-    // source, after which getNative() throws.
-    const natives = held.map((file) => file.getNative())
+    if (held.length) {
+        // Grab the native files first: removeFile() destroys the plupload
+        // File's source, after which getNative() throws.
+        const natives = held.map((file) => file.getNative())
 
-    // Remove held images from both the queue and the array the remaining
-    // handlers receive, so WordPress only starts uploading everything else.
-    held.forEach((file) => {
-        files.splice(files.indexOf(file), 1)
-        up.removeFile(file)
-    })
+        held.forEach((file) => dequeue(up, files, file))
 
-    openCompressorDialog(natives, { maxSize }).then((toUpload) => {
-        if (!toUpload.length) return
+        openCompressorDialog(natives, { maxSize }).then((toUpload) => {
+            if (!toUpload.length) return
 
-        toUpload.forEach((file) => processed.add(file))
-        up.addFile(toUpload)
-    })
+            toUpload.forEach((file) => processed.add(file))
+            up.addFile(toUpload)
+        })
+    }
 
-    // Every file in this batch was held, so skip WordPress's handler entirely.
+    // Nothing left in this batch, so skip WordPress's handler, which would
+    // otherwise start an empty upload.
     if (!files.length) return false
 }
 
-extendSizeFilter()
 extendUploader()

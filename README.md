@@ -58,7 +58,9 @@ The settings are stored in the `media_compressor` option.
 
 ## Where it works
 
-The compressor hooks into `wp.Uploader` (plupload), so it covers:
+The compressor only runs in wp-admin. If a theme or plugin opens the media uploader on the front end, uploads there work as normal without the dialog.
+
+It hooks into `wp.Uploader` (plupload), WordPress's own media uploader, so it covers:
 
 - the Media Library grid, including drag-and-drop,
 - any `wp.media` modal, including the one in the block editor.
@@ -70,7 +72,9 @@ It does not cover:
 
 ## Upload size limit
 
-WordPress normally rejects files over the upload limit in the browser. This plugin lets oversized JPEG/PNG/WebP images through to the dialog, so a large photo can be compressed until it fits. Rows still over the limit are flagged in the dialog. The limit is checked again when the compressed file is added, and PHP's `upload_max_filesize` / `post_max_size` still apply on the server.
+WordPress normally rejects files over the upload limit in the browser. This plugin lets oversized JPEG/PNG/WebP images through to the dialog, so a large photo can be compressed until it fits. Rows still over the limit are flagged in the dialog. Other files over the limit, and compressed images that are still too large, are rejected with WordPress's usual error. PHP's `upload_max_filesize` / `post_max_size` still apply on the server.
+
+To do this, the plugin takes over the size check only on the WordPress media uploaders it hooks into. Nothing global in plupload is replaced, so other plupload uploaders on the page (such as Gravity Forms file upload fields) and other plugins' plupload filters are unaffected.
 
 ## Notes
 
