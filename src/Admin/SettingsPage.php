@@ -176,7 +176,7 @@ final class SettingsPage implements Hookable
             printf(
                 '<option value="%s" %s>%s</option>',
                 esc_attr($format->value),
-                selected($current, $format, false),
+                selected($current->value, $format->value, false),
                 esc_html($format->label())
             );
         }
