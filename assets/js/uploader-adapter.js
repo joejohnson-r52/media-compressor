@@ -133,9 +133,11 @@ export class UploaderAdapter {
 
         held.forEach((file) => this.#dequeue(files, file))
 
-        this.#review(natives, { maxSize: this.#maxSize }).then((toUpload) =>
-            this.#requeue(toUpload),
-        )
+        // If the review fails (e.g. the dialog can't open), upload the
+        // originals rather than silently dropping them.
+        this.#review(natives, { maxSize: this.#maxSize })
+            .catch(() => natives)
+            .then((toUpload) => this.#requeue(toUpload))
     }
 
     /** @param {File[]} natives */

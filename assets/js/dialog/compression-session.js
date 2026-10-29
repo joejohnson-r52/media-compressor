@@ -26,10 +26,18 @@ export class Outcome {
 }
 
 /**
+ * How many images are compressed at once. Each holds its full-size decoded
+ * pixels (about 48 MB for a 12 MP photo) until drawn, so a whole batch at once
+ * can exhaust the browser's memory, notably Safari's canvas limit.
+ */
+const CONCURRENCY = 2
+
+/**
  * Compression runs for one dialog's batch of images.
  *
  * Previews re-run whenever the settings change; a run counter discards results
- * from runs that finish after a newer one has started.
+ * from runs that finish after a newer one has started, and stops them starting
+ * any more images.
  */
 export class CompressionSession {
     #files
@@ -51,7 +59,10 @@ export class CompressionSession {
      */
     async preview(options) {
         const run = ++this.#run
-        const outcomes = await this.compressAll(options)
+        const outcomes = await this.compressAll(
+            options,
+            () => run !== this.#run,
+        )
 
         return run === this.#run ? outcomes : null
     }
@@ -62,32 +73,50 @@ export class CompressionSession {
     }
 
     /**
+     * Compress every image, CONCURRENCY at a time.
+     *
      * @param {import('media-compressor/config').CompressionOptions} options
+     * @param {() => boolean} [isStale] - true once the results are unwanted;
+     *     no further images are started, and the outcomes are incomplete
      * @returns {Promise<Outcome[]>}
      */
-    async compressAll(options) {
-        const settled = await Promise.allSettled(
-            this.#files.map((file) => this.#compressor.compress(file, options)),
-        )
+    async compressAll(options, isStale = () => false) {
+        const outcomes = []
+        let next = 0
 
-        return settled.map((result, index) =>
-            CompressionSession.#toOutcome(result, this.#files[index]),
-        )
+        const worker = async () => {
+            while (next < this.#files.length && !isStale()) {
+                const index = next++
+
+                outcomes[index] = await this.#compress(
+                    this.#files[index],
+                    options,
+                )
+            }
+        }
+
+        await Promise.all(Array.from({ length: CONCURRENCY }, worker))
+
+        return outcomes
     }
 
     /**
-     * @param {PromiseSettledResult<File>} result
      * @param {File} original
-     * @returns {Outcome}
+     * @param {import('media-compressor/config').CompressionOptions} options
+     * @returns {Promise<Outcome>}
      */
-    static #toOutcome(result, original) {
-        if (result.status === 'rejected') {
-            return new Outcome(original, original, result.reason)
+    async #compress(original, options) {
+        let file
+
+        try {
+            file = await this.#compressor.compress(original, options)
+        } catch (error) {
+            return new Outcome(original, original, error)
         }
 
         // Never upload something bigger than what we started with.
-        return result.value.size < original.size
-            ? new Outcome(original, result.value)
+        return file.size < original.size
+            ? new Outcome(original, file)
             : new Outcome(original)
     }
 }
