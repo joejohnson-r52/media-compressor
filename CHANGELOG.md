@@ -13,7 +13,6 @@ All notable changes to this plugin are documented here. The format is based on [
 ### Fixed
 
 - The Settings link on the Plugins screen is only shown to users who can open the settings page; others previously saw a link with no destination.
-
 - The decoded image is now released when compression fails partway, as well as when it succeeds. Previously a failure, such as a photo too large for Safari's canvas, kept the full-size image in memory.
 - The dialog now says why an image couldn't be compressed: "Could not read this image", "Too large for this browser to process" (for example a large photo in Safari with no maximum dimension), or "This browser can't produce WebP images".
 
