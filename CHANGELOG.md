@@ -4,6 +4,14 @@ All notable changes to this plugin are documented here. The format is based on [
 
 ## [Unreleased]
 
+## [1.2.2] - 2026-10-29
+
+### Fixed
+
+- Large batches of images no longer exhaust the browser's memory. Images are compressed two at a time instead of all at once, which in Safari could fail with "Too large for this browser to process" for photos that fit on their own, or crash the tab.
+- Changing the settings while a preview is running stops that preview instead of letting it finish in the background.
+- If the compressor dialog can't open, the images upload uncompressed instead of being silently dropped.
+
 ## [1.2.1] - 2026-10-29
 
 ### Fixed
@@ -109,7 +117,8 @@ All notable changes to this plugin are documented here. The format is based on [
 - The original is uploaded whenever compressing wouldn't make it smaller.
 - Images over the upload limit can be compressed until they fit, instead of being rejected before the dialog opens.
 
-[Unreleased]: https://github.com/joejohnson-r52/media-compressor/compare/v1.2.1...HEAD
+[Unreleased]: https://github.com/joejohnson-r52/media-compressor/compare/v1.2.2...HEAD
+[1.2.2]: https://github.com/joejohnson-r52/media-compressor/compare/v1.2.1...v1.2.2
 [1.2.1]: https://github.com/joejohnson-r52/media-compressor/compare/v1.2.0...v1.2.1
 [1.2.0]: https://github.com/joejohnson-r52/media-compressor/compare/v1.1.2...v1.2.0
 [1.1.2]: https://github.com/joejohnson-r52/media-compressor/compare/v1.1.1...v1.1.2
