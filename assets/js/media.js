@@ -1,4 +1,4 @@
-import { isCompressible } from 'media-compressor/compressor'
+import { isCompressible, readModuleData } from 'media-compressor/compressor'
 import { openCompressorDialog } from 'media-compressor/dialog'
 
 /**
@@ -27,6 +27,27 @@ const processed = new WeakSet()
 const extended = new WeakSet()
 
 /**
+ * Images smaller than this many bytes skip the dialog; 0 holds every image.
+ * Set under Settings → Media Compressor.
+ */
+const { threshold = 0 } = readModuleData('media-compressor')
+
+/**
+ * Whether an added image goes through the compressor dialog. Images under the
+ * site's size threshold upload untouched, unless they're over the upload limit
+ * and need compressing to fit.
+ *
+ * @param {File|null} native
+ * @param {number} maxSize - upload limit in bytes, 0 for none
+ * @returns {boolean}
+ */
+const shouldHold = (native, maxSize) =>
+    Boolean(native) &&
+    !processed.has(native) &&
+    isCompressible(native) &&
+    (native.size >= threshold || (maxSize > 0 && native.size > maxSize))
+
+/**
  * Replace plupload's max_file_size filter so images over the upload limit
  * reach the compressor instead of being rejected outright. The limit is still
  * applied when the compressed file is re-added, and PHP enforces it server-side.
@@ -37,20 +58,13 @@ const extendSizeFilter = () => {
     if (!plupload) return
 
     plupload.addFileFilter('max_file_size', function (maxSize, file, cb) {
-        const native = file.getNative()
+        const limit = plupload.parseSize(maxSize)
 
-        if (
-            extended.has(this) &&
-            native &&
-            !processed.has(native) &&
-            isCompressible(native)
-        ) {
+        if (extended.has(this) && shouldHold(file.getNative(), limit)) {
             return cb(true)
         }
 
         // Mirrors plupload's built-in filter.
-        const limit = plupload.parseSize(maxSize)
-
         if (file.size !== undefined && limit && file.size > limit) {
             this.trigger('Error', {
                 code: plupload.FILE_SIZE_ERROR,
@@ -88,11 +102,10 @@ const extendUploader = () => {
  * @param {plupload.File[]} files
  */
 function onFilesAdded(up, files) {
-    const held = files.filter((file) => {
-        const native = file.getNative()
-
-        return native && !processed.has(native) && isCompressible(native)
-    })
+    const maxSize = window.plupload.parseSize(
+        up.settings.filters?.max_file_size,
+    )
+    const held = files.filter((file) => shouldHold(file.getNative(), maxSize))
 
     if (!held.length) return
 
@@ -106,10 +119,6 @@ function onFilesAdded(up, files) {
         files.splice(files.indexOf(file), 1)
         up.removeFile(file)
     })
-
-    const maxSize = window.plupload.parseSize(
-        up.settings.filters?.max_file_size,
-    )
 
     openCompressorDialog(natives, { maxSize }).then((toUpload) => {
         if (!toUpload.length) return

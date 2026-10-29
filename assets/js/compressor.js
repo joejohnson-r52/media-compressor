@@ -6,10 +6,21 @@
  */
 export const COMPRESSIBLE_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 
+/**
+ * Site settings from Settings → Media Compressor, printed by WordPress as
+ * script module data (already validated server-side). Anything missing keeps
+ * the built-in defaults below.
+ */
+const site = readModuleData('media-compressor/compressor')
+const format = site.format ?? 'original'
+
 export const DEFAULT_OPTIONS = {
     quality: 0.8,
     maxDimension: 2560,
-    format: 'original',
+    ...site,
+    // Fall back when this browser can't produce the site's format (WebP in
+    // Safari), so the defaults are always usable here.
+    format: format === 'original' || canEncode(format) ? format : 'original',
 }
 
 const EXTENSIONS = {
@@ -104,6 +115,22 @@ function renameForType(name, type) {
     const base = name.replace(/\.[^.]+$/, '')
 
     return `${base}.${EXTENSIONS[type]}`
+}
+
+/**
+ * Read the JSON data WordPress prints for a script module.
+ *
+ * @param {string} id - script module id
+ * @returns {object}
+ */
+export function readModuleData(id) {
+    try {
+        const element = document.getElementById(`wp-script-module-data-${id}`)
+
+        return JSON.parse(element?.textContent || '{}')
+    } catch {
+        return {}
+    }
 }
 
 /**

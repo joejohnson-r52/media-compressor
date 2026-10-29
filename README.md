@@ -10,11 +10,11 @@ When JPEG, PNG or WebP images are added to the uploader, a dialog opens before a
 
 and see the new size of each image as you change the settings. If compressing doesn't make an image smaller, the original is uploaded instead.
 
-The settings from the last "Compress & upload" are remembered in that browser (`localStorage`), so the dialog opens with them next time. Cancelling or choosing "Upload original" doesn't change them.
+The dialog opens with the site's settings (see [Settings](#settings)) every time.
 
 ## Requirements
 
-- WordPress 6.5+ (script modules)
+- WordPress 6.7+ (script modules and script module data)
 - A browser with `OffscreenCanvas` and `createImageBitmap` support
 
 There is no build step: the plugin ships plain ES modules and CSS.
@@ -40,6 +40,21 @@ The repository is private, so add it as a VCS repository. Composer reads it over
 ### Manually
 
 Copy the folder into `wp-content/plugins/` and activate it.
+
+## Settings
+
+Administrators can set the site's defaults under **Settings → Media Compressor**:
+
+| Setting                  | Default       | Notes                                                                                              |
+| ------------------------ | ------------- | -------------------------------------------------------------------------------------------------- |
+| Quality                  | 80%           | 10–100 in steps of 5. Ignored for PNG output.                                                      |
+| Maximum dimension        | 2560px        | Longest edge after resizing. 0 keeps the original dimensions.                                      |
+| Output format            | Keep original | Keep original, WebP or JPEG. Browsers that can't produce WebP (Safari) fall back to Keep original. |
+| Skip images smaller than | 0 KB          | Images below this size upload without the dialog. 0 shows the dialog for every image.              |
+
+The dialog opens with these every time, and they can still be adjusted for each upload. Images over the upload limit always open the dialog, whatever the threshold, so they can be compressed to fit.
+
+The settings are stored in the `media_compressor` option.
 
 ## Where it works
 

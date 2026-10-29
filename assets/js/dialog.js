@@ -8,8 +8,6 @@ import {
 /** Counter for unique heading ids, as more than one dialog can be open. */
 let dialogCount = 0
 
-const STORAGE_KEY = 'media-compressor:settings'
-
 /** Output formats, as [value, label]. Filtered by browser support on use. */
 const FORMATS = [
     ['original', 'Keep original'],
@@ -37,12 +35,7 @@ export function openCompressorDialog(files, { maxSize = 0 } = {}) {
         const dialog = document.createElement('dialog')
         dialog.className = 'media-compressor'
         dialog.setAttribute('aria-labelledby', titleId)
-        dialog.innerHTML = template(
-            files,
-            titleId,
-            formats,
-            loadSettings(formats),
-        )
+        dialog.innerHTML = template(files, titleId, formats, DEFAULT_OPTIONS)
         document.body.append(dialog)
 
         const form = dialog.querySelector('form')
@@ -143,7 +136,6 @@ export function openCompressorDialog(files, { maxSize = 0 } = {}) {
                 // Read settings first: FormData skips disabled fields.
                 const options = readOptions()
 
-                saveSettings(options)
                 busy = true
                 debouncedUpdate.cancel()
                 form.querySelectorAll('input, select').forEach(
@@ -179,48 +171,6 @@ export function openCompressorDialog(files, { maxSize = 0 } = {}) {
         dialog.showModal()
         update()
     })
-}
-
-/**
- * Settings from the last "Compress & upload" in this browser, or the defaults.
- * Saved values are validated, as they may be stale or from a browser with
- * different format support (e.g. WebP saved in Chrome, opened in Safari).
- *
- * @param {Array<[string, string]>} formats - formats this browser offers
- * @returns {{quality: number, maxDimension: number, format: string}}
- */
-function loadSettings(formats) {
-    let saved = {}
-
-    // Storage can be unavailable or throw (private mode, blocked site data).
-    try {
-        saved = JSON.parse(localStorage.getItem(STORAGE_KEY)) ?? {}
-    } catch {}
-
-    const { quality, maxDimension, format } = saved
-
-    return {
-        quality:
-            Number.isFinite(quality) && quality >= 0.1 && quality <= 1
-                ? quality
-                : DEFAULT_OPTIONS.quality,
-        maxDimension:
-            Number.isInteger(maxDimension) && maxDimension >= 0
-                ? maxDimension
-                : DEFAULT_OPTIONS.maxDimension,
-        format: formats.some(([type]) => type === format)
-            ? format
-            : DEFAULT_OPTIONS.format,
-    }
-}
-
-/**
- * @param {{quality: number, maxDimension: number, format: string}} settings
- */
-function saveSettings(settings) {
-    try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(settings))
-    } catch {}
 }
 
 /**

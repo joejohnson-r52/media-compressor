@@ -4,10 +4,11 @@
  * Plugin Name: Media Compressor
  * Description: Compress and resize images in the browser before they are uploaded to the Media Library.
  * Version: 1.0.3
- * Requires at least: 6.5
+ * Requires at least: 6.7
  * Requires PHP: 7.4
  * Author: Joe Johnson
  * License: MIT
+ * Text Domain: media-compressor
  */
 
 namespace MediaCompressor;
@@ -15,6 +16,10 @@ namespace MediaCompressor;
 if (! defined('ABSPATH')) {
     exit;
 }
+
+const PLUGIN_FILE = __FILE__;
+
+require_once __DIR__ . '/includes/settings.php';
 
 /**
  * Plugin version, read from the header above so it only lives in one place.
