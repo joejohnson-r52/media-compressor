@@ -4,6 +4,22 @@ All notable changes to this plugin are documented here. The format is based on [
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-10-29
+
+### Added
+
+- Settings → Media Compressor page (administrators only) for the site's default quality, maximum dimension and output format, with a Settings link on the Plugins screen.
+- A size threshold: images smaller than it upload without the dialog. Images over the upload limit still always open it.
+- The plugin's settings are deleted when the plugin is deleted.
+
+### Changed
+
+- Requires WordPress 6.7, for script module data.
+
+### Removed
+
+- Remembering each browser's last-used settings (added in 1.0.3). It overrode the site settings, so changes on the settings page never reached anyone who had used the dialog. The dialog now always opens with the site's settings.
+
 ## [1.0.3] - 2026-10-28
 
 ### Added
@@ -50,7 +66,8 @@ All notable changes to this plugin are documented here. The format is based on [
 - The original is uploaded whenever compressing wouldn't make it smaller.
 - Images over the upload limit can be compressed until they fit, instead of being rejected before the dialog opens.
 
-[Unreleased]: https://github.com/joejohnson-r52/media-compressor/compare/v1.0.3...HEAD
+[Unreleased]: https://github.com/joejohnson-r52/media-compressor/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/joejohnson-r52/media-compressor/compare/v1.0.3...v1.1.0
 [1.0.3]: https://github.com/joejohnson-r52/media-compressor/compare/v1.0.2...v1.0.3
 [1.0.2]: https://github.com/joejohnson-r52/media-compressor/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/joejohnson-r52/media-compressor/compare/v1.0.0...v1.0.1
