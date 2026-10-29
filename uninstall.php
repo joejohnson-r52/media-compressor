@@ -1,11 +1,18 @@
 <?php
 
 /**
- * Remove the plugin's settings when it is deleted from the Plugins screen.
+ * Remove the plugin's settings, on every site, when it is deleted from the
+ * Plugins screen.
  */
+
+use MediaCompressor\Settings\SettingsRepository;
 
 if (! defined('WP_UNINSTALL_PLUGIN')) {
     exit;
 }
 
-delete_option('media_compressor');
+if (! class_exists(SettingsRepository::class)) {
+    require_once __DIR__ . '/autoload.php';
+}
+
+(new SettingsRepository())->deleteFromAllSites();
